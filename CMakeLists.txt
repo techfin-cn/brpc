@@ -97,15 +97,15 @@ configure_file(${PROJECT_SOURCE_DIR}/config.h.in ${PROJECT_SOURCE_DIR}/src/butil
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
+# find gflags and define GFLAGS_NS
 find_package(GFLAGS REQUIRED)
-
 execute_process(
-    COMMAND bash -c "grep \"namespace [_A-Za-z0-9]\\+ {\" ${GFLAGS_INCLUDE_PATH}/gflags/gflags_declare.h | head -1 | awk '{print $2}' | tr -d '\n'"
+    COMMAND bash -c "grep \"namespace [_A-Za-z0-9]\\+ {\" ${gflags_INCLUDE_DIR}/gflags/gflags_declare.h | head -1 | awk '{print $2}' | tr -d '\n'"
     OUTPUT_VARIABLE GFLAGS_NS
 )
 if(${GFLAGS_NS} STREQUAL "GFLAGS_NAMESPACE")
     execute_process(
-        COMMAND bash -c "grep \"#define GFLAGS_NAMESPACE [_A-Za-z0-9]\\+\" ${GFLAGS_INCLUDE_PATH}/gflags/gflags_declare.h | head -1 | awk '{print $3}' | tr -d '\n'"
+        COMMAND bash -c "grep \"#define GFLAGS_NAMESPACE [_A-Za-z0-9]\\+\" ${gflags_INCLUDE_DIR}/gflags/gflags_declare.h | head -1 | awk '{print $3}' | tr -d '\n'"
         OUTPUT_VARIABLE GFLAGS_NS
     )
 endif()
@@ -212,11 +212,7 @@ else()
 endif()
 find_package(Threads REQUIRED)
 
-find_path(LEVELDB_INCLUDE_PATH NAMES leveldb/db.h)
-find_library(LEVELDB_LIB NAMES leveldb)
-if ((NOT LEVELDB_INCLUDE_PATH) OR (NOT LEVELDB_LIB))
-    message(FATAL_ERROR "Fail to find leveldb")
-endif()
+find_package(leveldb REQUIRED)
 
 if(WITH_SNAPPY)
     find_path(SNAPPY_INCLUDE_PATH NAMES snappy.h)
@@ -276,15 +272,16 @@ else()
 endif()
 
 include_directories(
-        ${GFLAGS_INCLUDE_PATH}
-        ${PROTOBUF_INCLUDE_DIRS}
-        ${LEVELDB_INCLUDE_PATH}
+        ${gflags_INCLUDE_DIRS}
+        ${protobuf_INCLUDE_DIRS}
+        ${leveldb_INCLUDE_DIRS}
+        ${absl_INCLUDE_DIRS}
         )
 
 set(DYNAMIC_LIB
-    ${GFLAGS_LIBRARY}
-    ${PROTOBUF_LIBRARIES} ${protobuf_ABSL_USED_TARGETS}
-    ${LEVELDB_LIB}
+    ${gflags_LIBRARIES}
+    ${protobuf_LIBRARIES} ${protobuf_ABSL_USED_TARGETS}
+    leveldb::leveldb
     ${PROTOC_LIB}
     ${CMAKE_THREAD_LIBS_INIT}
     ${THRIFT_LIB}
@@ -529,7 +526,7 @@ set(PROTO_FILES idl_options.proto
                 brpc/streaming_rpc_meta.proto
                 brpc/proto_base.proto)
 file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/output/include/brpc)
-set(PROTOC_FLAGS ${PROTOC_FLAGS} -I${PROTOBUF_INCLUDE_DIR})
+set(PROTOC_FLAGS ${PROTOC_FLAGS} -I ${protobuf_INCLUDE_DIRS})
 compile_proto(PROTO_HDRS PROTO_SRCS ${PROJECT_BINARY_DIR}
                                     ${PROJECT_BINARY_DIR}/output/include
                                     ${PROJECT_SOURCE_DIR}/src

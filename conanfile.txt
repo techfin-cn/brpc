@@ -1,0 +1,13 @@
+[requires]
+leveldb/1.23
+protobuf/3.21.12
+abseil/20240116.2
+gflags/2.2.2
+gtest/1.15.0
+
+[generators]
+CMakeDeps
+CMakeToolchain
+
+[layout]
+cmake_layout
